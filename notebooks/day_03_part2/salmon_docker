@@ -4,8 +4,15 @@ LABEL image.author.name="yourname"
 LABEL image.author.email="yourmail"
 
 # Install dependencies
-
 # Download and install Salmon
+
+RUN apt-get update && apt-get install -y --no-install-recommends xz-utils && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# already local download -> COPY
+
+COPY salmon-1.5.2_linux_x86_64/bin/salmon /usr/bin/salmon
+RUN chmod +x /usr/bin/salmon
 
 # Set the PATH environment variable (to /usr/bin)
 
+ENV PATH="/usr/bin:${PATH}"

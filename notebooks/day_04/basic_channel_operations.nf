@@ -7,59 +7,64 @@ workflow{
 
     if (params.step == 1) {
         in_ch = channel.of(1,2,3)
-
+        first = in_ch.first()
+        first.view()
     }
 
     // Task 2 - Extract the last item from the channel
     
     if (params.step == 2) {
-
         in_ch = channel.of(1,2,3)
-
+        last = in_ch.last()
+        last.view()
     }
 
     // Task 3 - Use an operator to extract the first two items from the channel
 
     if (params.step == 3) {
-
         in_ch = channel.of(1,2,3)
-
-
+        first_two = in_ch.take(2)
+        first_two.view()
     }
 
     // Task 4 - Return the squared values of the channel
     
     if (params.step == 4) {
-
         in_ch = channel.of(2,3,4)
-
-
+        square = in_ch.map { it * it}
+        square.view()
     }
 
     // Task 5 - Remember the previous task where you squared the values of the channel. Now, extract the first two items from the squared channel
 
     if (params.step == 5) {
-
         in_ch = channel.of(2,3,4)
-        in_ch.map { it -> it * it }.take(2).view()
-        
+        square = in_ch.map { it * it }
+        square2 = square.take(2)
+        square2.view()
+
     }
 
     // Task 6 - Remember when you used bash to reverse the output? Try to use map and Groovy to reverse the output
 
-    if (params.step == 6) {
-        
+    if (params.step == 6) { 
         in_ch = channel.of('Taylor', 'Swift')
-
+        in_ch_collected = in_ch.collect()
+        reverse = in_ch_collected.map { list -> list.reverse() }
+        reverse.view()
     }
 
     // Task 7 - Use fromPath to include all fastq files in the "files_dir" directory, then use map to return a pair containing the file name and the file path (Hint: include groovy code)
 
     if (params.step == 7) {
-
         in_ch = channel.fromPath('files_dir/*.fq')
-
+        files = in_ch.map { file ->
+            def filename = new File(file.toString()).getName()
+            tuple(filename, file)
+        }
+        first = files.first()
         
+        first.view()
     }
 
     // Task 8 - Combine the items from the two channels into a single channel
@@ -70,26 +75,27 @@ workflow{
         ch_2 = channel.of(4,5,6)
         out_ch = channel.of("a", "b", "c")
 
-
+        combined = ch_1.merge(ch_2)
+        combined.view()
     }
 
     // Task 9 - Flatten the channel
 
     if (params.step == 9) {
-
         in_ch = channel.of([1,2,3], [4,5,6])
-
-
+        flat = in_ch.flatten()
+        flat.view()
     }
 
     // Task 10 - Collect the items of a channel into a list. What kind of channel is the output channel (value)?
 
     if (params.step == 10) {
-
         in_ch = channel.of(1,2,3)
-
+        list = in_ch.toList()
+        list.view()        
     }
-    
+    // The toList operator collects all the items from a source channel into a list and emits the list as a single item:
+    // Returns: dataflow value    
 
 
     // Task 11 -  From the input channel, create lists where each first item in the list of lists is the first item in the output channel, followed by a list of all the items its paired with
@@ -98,26 +104,50 @@ workflow{
     // out: [[1, ['A', 'B', 'C']], [2, ['D', 'E']], [3, ['F']]]
 
     if (params.step == 11) {
-
+        
         in_ch = channel.of([1, 'V'], [3, 'M'], [2, 'O'], [1, 'f'], [3, 'G'], [1, 'B'], [2, 'L'], [2, 'E'], [3, '33'])
-
+        grouped = in_ch.groupTuple()
+        grouped.view()
     }
 
     // Task 12 - Create a channel that joins the input to the output channel. What do you notice
 
     if (params.step == 12) {
-
         left_ch = channel.of([1, 'V'], [3, 'M'], [2, 'O'], [1, 'B'], [3, '33'])
         right_ch = channel.of([1, 'f'], [3, 'G'], [2, 'L'], [2, 'E'],)
 
+        joined = left_ch.join(right_ch)
+        joined.view()
     }
 
     // Task 13 - Split the input channel into two channels, one of all the even numbers and the other of all the odd numbers. Write the output of each channel to a list
     //           and write them to stdout including information which is which
 
     if (params.step == 13) {
-
         in_ch = channel.of(1,2,3,4,5,6,7,8,9,10)
+        in_ch.branch{
+            odd: it % 2 != 0
+            even: it % 2 == 0
+        }
+        .set { out_ch }
+
+        out_ch.odd.collect().dump(tag: "Odd: ")
+        out_ch.even.collect().dump(tag: "Even: ")
+
+        
+        // Other way to do without caring about the order:
+
+        // even numbers
+        // even_ch = in_ch.filter { it % 2 == 0 }
+        // list_even = even_ch.toList()
+        // println("even numbers:")
+        // list_even.view()
+        
+        // odd numbers
+        // odd_ch = in_ch.filter{ it % 2 != 0 }
+        // list_odd = odd_ch.toList
+        // println("uneven numbers:")
+        // list_uneven.view()
 
     }
 
@@ -135,7 +165,13 @@ workflow{
             ['name': 'Hagrid', 'title': 'groundkeeper'],
             ['name': 'Dobby', 'title': 'hero'],
         )
-    
+        new File('results').mkdirs()
+
+        in_ch.map { person ->
+            new File('results/names.txt').append("${person.name} \n")
+            return person
+        }
+        .collect()
     }
 
 

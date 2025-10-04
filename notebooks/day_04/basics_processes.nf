@@ -1,11 +1,149 @@
 params.step = 0
 params.zip = 'zip'
 
+// For me: use python -c
 
 process SAYHELLO {
+
     debug true
+
+    script:
+    """
+    echo 'Hello World!'
+    """
 }
 
+process SAYHELLO_PYTHON{
+
+    debug true
+
+    script:
+    """
+    python -c "print('Hello World!')"
+    """
+}
+process SAYHELLO_PARAM{
+
+    debug true 
+
+    input:
+    val greeting
+
+    exec:
+    message = "${greeting}"
+
+    output:
+    val message
+
+}
+
+process SAYHELLO_FILE{
+
+    input:
+    val greeting
+
+    output:
+    path "HelloWorld.txt"
+
+    script:
+    """
+    echo "${greeting}" > HelloWorld.txt
+    """
+
+}
+
+process UPPERCASE{
+
+    input:
+    val greeting
+
+    output:
+    path "Uppercase.txt"
+
+    script:
+    """
+    echo "${greeting}" | tr '[:lower:]' '[:upper:]' > Uppercase.txt
+    """
+}
+
+process PRINTUPPER{
+
+    debug true
+
+    input:
+    path file_uppercase
+
+    script:
+    """
+    cat $file_uppercase
+    """
+}
+
+process ZIP_FILE{
+
+    input:
+    path file_uppercase
+    val zip_format
+
+    output:
+    path "*", emit: zipped_file
+
+    script:
+    if (zip_format == "zip"){
+
+    """
+    zip ${file_uppercase}.zip $file_uppercase
+    """
+
+    } else if (zip_format == "gzip"){
+    
+    """
+    gzip -c $file_uppercase > ${file_uppercase}.gz
+    """
+
+    } else if (zip_format ==  "bzip2"){
+
+    """
+    bzip2 -c $file_uppercase > ${file_uppercase}.bz2 
+    """
+
+    }
+}
+
+process ZIP_ALL_FILES{
+
+    input:
+    path file_uppercase
+
+    output:
+    path "*", emit: zipped_files
+
+    script:
+    """
+    zip ${file_uppercase}.zip $file_uppercase
+    gzip -c $file_uppercase > ${file_uppercase}.gz
+    bzip2 -c $file_uppercase > ${file_uppercase}.bz2
+    """
+
+}
+
+process WRITETOFILE{
+
+publishDir "results/"
+
+input:
+val list
+
+output:
+path "names.tsv"
+
+script:
+"""
+echo -e "name\ttitle" > names.tsv
+${list.collect { person -> "echo -e \"${person.name}\t${person.title}\" >> names.tsv "}.join('\n')}
+"""
+
+}
 
 
 workflow {
@@ -32,12 +170,17 @@ workflow {
         SAYHELLO_FILE(greeting_ch)
     }
 
+    // The file can be found under work/aa/bc4f75a562904dec9535be2a7f9f23/HelloWorld.txt
+    // (Work directory of nextflow. There all intermediate results are stored)
+
     // Task 5 - create a process that reads in a string and converts it to uppercase and saves it to a file as output. View the path to the file in the console
     if (params.step == 5) {
         greeting_ch = Channel.of("Hello world!")
         out_ch = UPPERCASE(greeting_ch)
         out_ch.view()
     }
+    // path to the file: work/35/3b61968228019fbb5cffc3438ffbf3/Uppercase.txt
+
 
     // Task 6 - add another process that reads in the resulting file from UPPERCASE and print the content to the console (debug true). WHAT CHANGED IN THE OUTPUT?
     if (params.step == 6) {
@@ -51,12 +194,21 @@ workflow {
     //          Print out the path to the zipped file in the console
     if (params.step == 7) {
         greeting_ch = Channel.of("Hello world!")
+        out_ch = UPPERCASE(greeting_ch)
+
+        zip_format = Channel.of(params.zip)
+        zipped_file_ch = ZIP_FILE(out_ch, zip_format)
+        zipped_file_ch.view()
     }
 
     // Task 8 - Create a process that zips the file created in the UPPERCASE process in "zip", "gzip" AND "bzip2" format. Print out the paths to the zipped files in the console
 
     if (params.step == 8) {
         greeting_ch = Channel.of("Hello world!")
+        out_ch = UPPERCASE(greeting_ch)
+
+        zipped_files_ch = ZIP_ALL_FILES(out_ch)
+        zipped_files_ch.view()
     }
 
     // Task 9 - Create a process that reads in a list of names and titles from a channel and writes them to a file.
@@ -72,10 +224,11 @@ workflow {
             ['name': 'Hagrid', 'title': 'groundkeeper'],
             ['name': 'Dobby', 'title': 'hero'],
         )
-
-        in_ch
-            | WRITETOFILE
-            // continue here
+        // continue here
+        list_ch = in_ch.collect()
+        out_ch = WRITETOFILE(list_ch)
+        out_ch.view()
+            
     }
 
 }

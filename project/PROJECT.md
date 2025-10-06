@@ -4,7 +4,7 @@ Student1: Maya Lehner
 
 Student2: Florian Kramer
 
-Project Github url: https://github.com/xXFloBaerXx/computational-workflows-project.git 
+Project Github url: https://github.com/xXFloBaerXx/nf-core-transcriptomicsanalysis.git
 
 
 # Next steps

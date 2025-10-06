@@ -15,7 +15,7 @@ process SPLITLETTERS {
     """
     in_str="${input_str}"
     size=${blocksize}
-    prefix=${meta.prefix}
+    prefix=${prefix}
 
     for (( i=0; i<\${#in_str}; i+=size)); do
         chunk=\${in_str:i:size}

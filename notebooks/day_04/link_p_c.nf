@@ -3,15 +3,19 @@
 process SPLITLETTERS {
     
     input:
-    tuple val(prefix), val(input_str), val(meta)
+    tuple  val(meta), val(input_str)
 
     output:
-    path "chunk_${prefix}_*.txt", emit: chunk_files
+    path "chunk_${meta.prefix}_*.txt", emit: chunk_files
 
     script:
+    def prefix = meta.prefix
+    def blocksize = meta.block_size
+
     """
     in_str="${input_str}"
-    size=${meta}
+    size=${blocksize}
+    prefix=${meta.prefix}
 
     for (( i=0; i<\${#in_str}; i+=size)); do
         chunk=\${in_str:i:size}
@@ -43,12 +47,7 @@ workflow {
 
     // read in samplesheet
     samplesheet_2 = channel.fromPath('samplesheet_2.csv').splitCsv(header:true)
-    in_ch = samplesheet_2.map { row ->
-        def prefix = row.prefix
-        def in_str = row.input_str
-        def metadata = row.block_size
-        return [prefix, in_str, metadata]
-    }
+    in_ch = samplesheet_2.map { row -> [ [prefix: row.prefix, block_size: row.block_size], row.input_str ] }
 
     // split the input string into chunks
     chunks_ch = SPLITLETTERS(in_ch)

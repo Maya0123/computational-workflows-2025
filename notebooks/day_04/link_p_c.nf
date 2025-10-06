@@ -53,7 +53,8 @@ workflow {
     chunks_ch = SPLITLETTERS(in_ch)
 
     // lets remove the metamap to make it easier for us, as we won't need it anymore
-
+    // in_ch = in_ch.map { tuple -> def input = tuple[1] return input}
+    
     // convert the chunks to uppercase and save the files to the results directory
     upper_ch = CONVERTTOUPPER(chunks_ch.flatten())
     upper_ch.view()
